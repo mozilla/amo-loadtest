@@ -1,0 +1,9 @@
+.env
+*.py[co]
+.*.sw?
+.DS_Store
+.idea
+.npm/
+*.po~
+.ipython
+pip-log.txt
