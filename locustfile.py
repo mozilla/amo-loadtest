@@ -1,15 +1,33 @@
+import logging
 import os
+import random
 
 import lxml.html
 from lxml.html import submit_form
 from locust import HttpLocust, TaskSet, task
 
+data_dir = os.path.join(os.path.dirname(__file__), 'data')
+log = logging.getLogger(__name__)
+
 
 class UserBehavior(TaskSet):
 
     def on_start(self):
-        username, password = self.create_account()
-        self.login(username, password)
+        user_file = os.path.join(data_dir, 'loadtest-users.txt')
+        if not os.path.exists(user_file):
+            raise ValueError(
+                'User file does not exist: {}; did you generate one?'
+                .format(user_file))
+        users = []
+        with open(user_file, 'r') as f:
+            for line in f:
+                email, password = line.strip().split(':')
+                users.append({'email': email, 'password': password})
+
+        credentials = random.choice(users)
+
+        log.info('Running test with {}'.format(credentials))
+        self.login(credentials['email'], credentials['password'])
 
     def submit_form(self, form=None, url=None, extra_values=None):
         if form is None:
@@ -21,33 +39,26 @@ class UserBehavior(TaskSet):
                 raise ValueError(
                     'Possibly the wrong form. Could not find '
                     'csrfmiddlewaretoken: {}'.format(repr(values)))
-            self.client.post(url or form_action_url, values)
+            with self.client.post(
+                    url or form_action_url, values,
+                    allow_redirects=False, catch_response=True) as response:
+                if response.status_code not in (301, 302):
+                    # This probably means the form failed and is displaying
+                    # errors.
+                    # TODO: scrape out the errors.
+                    response.failure(
+                        'Form submission did not redirect; status={}'
+                        .format(response.status_code))
 
         submit_form(form, open_http=submit, extra_values=extra_values)
-
-    def create_account(self):
-        resp = self.client.get("/en-US/firefox/users/register")
-        register_form = self.get_the_only_form_without_id(resp.content)
-        if 'recaptcha_response_field' in register_form.fields:
-            raise ValueError(
-                'Aww snap, cannot register a new user because reCaptcha is on')
-        id = os.urandom(4).encode('hex')
-        username = 'kumars-loadtest-{}'.format(id)
-        password = os.urandom(32).encode('hex')
-
-        self.submit_form(
-            form=register_form, extra_values={
-                "username": username,
-                "password": password,
-                "password2": password,
-                "email": "kumars-loadtest-{}@nowhere.org".format(id),
-                "display_name": "Kumar's Loadtest {}".format(id)})
-
-        return username, password
 
     def get_the_only_form_without_id(self, response_content):
         """
         Gets the only form on the page that doesn't have an ID.
+
+        A lot of pages (login, registration) have a single form with an ID.
+        This is the one we want. The other forms on the page have IDs so we
+        can ignore them. I'm sure this will break one day.
         """
         html = lxml.html.fromstring(response_content)
         target_form = None
@@ -71,13 +82,17 @@ class UserBehavior(TaskSet):
                 "password": password})
 
     @task(1)
-    def devhub_test(self):
+    def index(self):
         with self.client.get(
-                "/en-US/developers/addon/",
+                "/en-US/developers/addons",
                 allow_redirects=False, catch_response=True) as response:
             if response.status_code != 200:
-                response.failure('Unexpected status: {}'
-                                 .format(response.status_code))
+                more_info = ''
+                if response.status_code in (301, 302):
+                    more_info = ('Location: {}'
+                                 .format(response.headers['Location']))
+                response.failure('Unexpected status: {}; {}'
+                                 .format(response.status_code, more_info))
 
 
 class WebsiteUser(HttpLocust):
