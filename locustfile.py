@@ -164,6 +164,17 @@ class UserBehavior(TaskSet):
         if form:
             self.upload_addon(form)
 
+    @task(5)
+    def browse(self):
+        self.client.get('/en-US/firefox/')
+        self.client.get('/en-US/firefox/search/?q=pi&appver=45.0&platform=mac')
+        with self.client.get(
+                '/en-US/firefox/extensions/',
+                allow_redirects=False, catch_response=True) as response:
+            html = lxml.html.fromstring(response.content)
+            url = random.choice(html.cssselect('.item.addon h3 a')).get('href')
+            self.client.get(url)
+
     def poll_upload_until_ready(self, url):
         for i in xrange(MAX_UPLOAD_POLL_ATTEMPTS):
             with self.client.get(url, allow_redirects=False,
