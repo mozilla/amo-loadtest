@@ -1,0 +1,19 @@
+base:
+  build: ../
+  environment:
+    - SITE_UNDER_TEST
+    - MASTER_HOST=master
+  volumes:
+    - ..:/code
+
+master:
+  extends:
+    service: base
+  command: "locust --master --host=${SITE_UNDER_TEST}"
+  ports:
+    - "8089:8089"
+
+worker:
+  extends:
+    service: base
+  command: "locust --slave --master-host=${MASTER_HOST} --host=${SITE_UNDER_TEST}"

@@ -1,0 +1,5 @@
+master:
+  extends:
+    file: docker-configs/base.yml
+    service: master
+  hostname: master

@@ -1,24 +1,12 @@
-base:
-  build: .
-  environment:
-    - SITE_UNDER_TEST
-  command: locust --master --host=$SITE_UNDER_TEST
-  volumes:
-    - .:/code
-
 master:
   extends:
-    file: docker-compose.yml
-    service: base
-  command: ./locust-runner.py --master --host=$SITE_UNDER_TEST
+    file: docker-configs/base.yml
+    service: master
   hostname: master
-  ports:
-    - "8089:8089"
 
 worker:
   extends:
-    file: docker-compose.yml
-    service: base
-  command: ./locust-runner.py --slave --master-host=master --host=$SITE_UNDER_TEST
+    file: docker-configs/base.yml
+    service: worker
   links:
     - master:master
