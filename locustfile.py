@@ -167,6 +167,7 @@ class UserBehavior(TaskSet):
     def poll_upload_until_ready(self, url):
         for i in xrange(MAX_UPLOAD_POLL_ATTEMPTS):
             with self.client.get(url, allow_redirects=False,
+                                 name='/en-US/developers/upload/:uuid/json',
                                  catch_response=True) as response:
                 if response.status_code == 200:
                     data = response.json()
