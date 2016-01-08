@@ -1,13 +1,55 @@
 import logging
 import os
 import random
+import re
+import tempfile
+import time
+import uuid
+from contextlib import contextmanager
+from shutil import make_archive, rmtree
+from zipfile import ZipFile
 
 import lxml.html
 from lxml.html import submit_form
 from locust import HttpLocust, TaskSet, task
 
+MAX_UPLOAD_POLL_ATTEMPTS = 200
+ID_REGEX = re.compile('THIS_IS_THE_ID')
+NAME_REGEX = re.compile('THIS_IS_THE_NAME')
+
 data_dir = os.path.join(os.path.dirname(__file__), 'data')
 log = logging.getLogger(__name__)
+
+
+def get_random():
+    return str(uuid.uuid4())
+
+
+def submit_url(step):
+    return '/en-US/developers/addon/submit/{step}'.format(step=step)
+
+
+@contextmanager
+def uniqueify_xpi(path):
+    output_dir = tempfile.mkdtemp()
+    try:
+        xpi_dir = os.path.join(output_dir, 'xpi')
+        output_path = os.path.join(output_dir, 'addon')
+        xpi_path = os.path.join(output_dir, 'addon.xpi')
+        with ZipFile(path) as original:
+            original.extractall(xpi_dir)
+        with open(os.path.join(xpi_dir, 'install.rdf')) as f:
+            install_rdf = f.read()
+        install_rdf = ID_REGEX.sub('{%s}' % get_random(), install_rdf)
+        install_rdf = NAME_REGEX.sub(get_random(), install_rdf)
+        with open(os.path.join(xpi_dir, 'install.rdf'), 'w') as f:
+            f.write(install_rdf)
+        archive_path = make_archive(output_path, 'zip', xpi_dir)
+        os.rename(archive_path, xpi_path)
+        with open(xpi_path) as f:
+            yield f
+    finally:
+        rmtree(output_dir)
 
 
 class UserBehavior(TaskSet):
@@ -56,7 +98,7 @@ class UserBehavior(TaskSet):
         """
         Gets the only form on the page that doesn't have an ID.
 
-        A lot of pages (login, registration) have a single form with an ID.
+        A lot of pages (login, registration) have a single form without an ID.
         This is the one we want. The other forms on the page have IDs so we
         can ignore them. I'm sure this will break one day.
         """
@@ -66,7 +108,7 @@ class UserBehavior(TaskSet):
             if not form.attrib.get('id'):
                 target_form = form
         if target_form is None:
-            raise valueerror(
+            raise ValueError(
                 'Could not find only one form without an ID; found: {}'
                 .format(html.forms))
         return target_form
@@ -81,12 +123,14 @@ class UserBehavior(TaskSet):
                 "username": email,
                 "password": password})
 
-    @task(1)
-    def index(self):
+    def load_upload_form(self):
+        url = submit_url(2)
         with self.client.get(
-                "/en-US/developers/addons",
-                allow_redirects=False, catch_response=True) as response:
-            if response.status_code != 200:
+                url, allow_redirects=False, catch_response=True) as response:
+            if response.status_code == 200:
+                html = lxml.html.fromstring(response.content)
+                return html.get_element_by_id('create-addon')
+            else:
                 more_info = ''
                 if response.status_code in (301, 302):
                     more_info = ('Location: {}'
@@ -94,8 +138,53 @@ class UserBehavior(TaskSet):
                 response.failure('Unexpected status: {}; {}'
                                  .format(response.status_code, more_info))
 
+    def upload_addon(self, form):
+        url = submit_url(2)
+        csrfmiddlewaretoken = form.fields['csrfmiddlewaretoken']
+        with uniqueify_xpi('add-ons/tiny.xpi') as addon_file:
+            with self.client.post(
+                    '/en-US/developers/upload',
+                    {'csrfmiddlewaretoken': csrfmiddlewaretoken},
+                    files={'upload': addon_file},
+                    allow_redirects=False,
+                    catch_response=True) as response:
+                if response.status_code == 302:
+                    poll_url = response.headers['location']
+                    upload_uuid = self.poll_upload_until_ready(poll_url)
+                    if upload_uuid:
+                        form.fields['upload'] = upload_uuid
+                        self.submit_form(form=form, url=url)
+                else:
+                    response.failure('Unexpected status: {}'.format(
+                        response.status_code))
+
+    @task(1)
+    def upload(self):
+        form = self.load_upload_form()
+        if form:
+            self.upload_addon(form)
+
+    def poll_upload_until_ready(self, url):
+        for i in xrange(MAX_UPLOAD_POLL_ATTEMPTS):
+            with self.client.get(url, allow_redirects=False,
+                                 catch_response=True) as response:
+                if response.status_code == 200:
+                    data = response.json()
+                    if data['error']:
+                        return response.failure('Unexpected error: {}'.format(
+                            data['error']))
+                    elif data['validation']:
+                        return data['upload']
+                else:
+                    return response.failure('Unexpected status: {}'.format(
+                        response.status_code))
+                time.sleep(1)
+        else:
+            response.failure('Upload did not complete in {} tries'.format(
+                MAX_UPLOAD_POLL_ATTEMPTS))
+
 
 class WebsiteUser(HttpLocust):
     task_set = UserBehavior
-    min_wait=5000
-    max_wait=9000
+    min_wait = 5000
+    max_wait = 9000
