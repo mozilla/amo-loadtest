@@ -17,7 +17,10 @@ MAX_UPLOAD_POLL_ATTEMPTS = 200
 ID_REGEX = re.compile('THIS_IS_THE_ID')
 NAME_REGEX = re.compile('THIS_IS_THE_NAME')
 
-data_dir = os.path.join(os.path.dirname(__file__), 'data')
+root_path = os.path.dirname(__file__)
+data_dir = os.path.join(root_path, 'data')
+xpi_dir = os.path.join(root_path, 'add-ons')
+xpis = [os.path.join(xpi_dir, xpi) for xpi in os.listdir(xpi_dir)]
 log = logging.getLogger(__name__)
 
 
@@ -27,6 +30,10 @@ def get_random():
 
 def submit_url(step):
     return '/en-US/developers/addon/submit/{step}'.format(step=step)
+
+
+def get_xpi():
+    return uniqueify_xpi(random.choice(xpis))
 
 
 @contextmanager
@@ -141,7 +148,7 @@ class UserBehavior(TaskSet):
     def upload_addon(self, form):
         url = submit_url(2)
         csrfmiddlewaretoken = form.fields['csrfmiddlewaretoken']
-        with uniqueify_xpi('add-ons/tiny.xpi') as addon_file:
+        with get_xpi() as addon_file:
             with self.client.post(
                     '/en-US/developers/upload',
                     {'csrfmiddlewaretoken': csrfmiddlewaretoken},
@@ -171,9 +178,14 @@ class UserBehavior(TaskSet):
         with self.client.get(
                 '/en-US/firefox/extensions/',
                 allow_redirects=False, catch_response=True) as response:
-            html = lxml.html.fromstring(response.content)
-            url = random.choice(html.cssselect('.item.addon h3 a')).get('href')
-            self.client.get(url)
+            if response.status_code == 200:
+                html = lxml.html.fromstring(response.content)
+                addon_links = html.cssselect('.item.addon h3 a')
+                url = random.choice(addon_links).get('href')
+                self.client.get(url)
+            else:
+                response.failure('Unexpected status code {}'.format(
+                    response.status_code))
 
     def poll_upload_until_ready(self, url):
         for i in xrange(MAX_UPLOAD_POLL_ATTEMPTS):
