@@ -1,0 +1,4 @@
+worker:
+  extends:
+    file: docker-configs/base.yml
+    service: worker
