@@ -40,7 +40,8 @@ First, boot up a master EC2 instance and do the following things:
 - Clone the source from https://github.com/mozilla/amo-loadtest
 - Push your `loadtest-users.txt` file up to the `data` directory
 - Install docker and docker-compose
-- Run this to start a master container::
+
+Run this to start a master container:
 
     cd src/amo-loadtest
     SITE_UNDER_TEST=https://addons.allizom.org \
@@ -54,7 +55,7 @@ at something like http://ec2-N-N-N-N.us-west-2.compute.amazonaws.com:8089/
 You can start as many workers as you want. For each EC2 instance you start, you
 need to begin by cloning the code, pushing your `loadtest-users.txt` file,
 and installing docker just like you would for a master instance.
-Run this command to start a worker container::
+Run this command to start a worker container:
 
     cd src/amo-loadtest
     SITE_UNDER_TEST=https://addons.allizom.org \
