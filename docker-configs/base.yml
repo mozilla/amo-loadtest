@@ -9,11 +9,13 @@ base:
 master:
   extends:
     service: base
-  command: "locust --master --host=${SITE_UNDER_TEST}"
+  command: "locust --loglevel=DEBUG --master --host=${SITE_UNDER_TEST}"
   ports:
     - "8089:8089"
+    - "5557:5557"
+    - "5558:5558"
 
 worker:
   extends:
     service: base
-  command: "locust --slave --master-host=${MASTER_HOST} --host=${SITE_UNDER_TEST}"
+  command: "locust --loglevel=DEBUG --slave --master-host=${MASTER_HOST} --host=${SITE_UNDER_TEST}"
