@@ -35,11 +35,14 @@ similar to how it's documented above.
 
 Launch a new Ubuntu EC2 instance and provision it like this:
 
-- Freshen sources: `sudo apt-get update`
-- Install git: `sudo apt-get install -y git-core`
-- Clone the source: `git clone https://github.com/mozilla/amo-loadtest.git`
-- Install docker by running `sudo ./scripts/provision-ec2.sh`
-- Push your `loadtest-users.txt` file up to the `data` directory
+    sudo apt-get update
+    sudo apt-get install -y git-core
+    git clone https://github.com/mozilla/amo-loadtest.git
+    cd amo-loadtest
+    sudo ./scripts/provision-ec2.sh
+
+Finally, push your `loadtest-users.txt` file up to the
+`amo-loadtest/data` directory.
 
 ### Start a master
 
