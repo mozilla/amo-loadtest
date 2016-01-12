@@ -192,8 +192,14 @@ class UserBehavior(TaskSet):
             with self.client.get(url, allow_redirects=False,
                                  name='/en-US/developers/upload/:uuid/json',
                                  catch_response=True) as response:
-                if response.status_code == 200:
+                try:
                     data = response.json()
+                except ValueError:
+                    return response.failure(
+                        'Failed to parse JSON when polling. '
+                        'Status: {} content: {}'.format(
+                            response.status_code, response.content))
+                if response.status_code == 200:
                     if data['error']:
                         return response.failure('Unexpected error: {}'.format(
                             data['error']))
