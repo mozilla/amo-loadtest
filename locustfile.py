@@ -182,7 +182,7 @@ class UserBehavior(TaskSet):
                 html = lxml.html.fromstring(response.content)
                 addon_links = html.cssselect('.item.addon h3 a')
                 url = random.choice(addon_links).get('href')
-                self.client.get(url)
+                self.client.get(url, name='/en-US/firefox/addon/:slug')
             else:
                 response.failure('Unexpected status code {}'.format(
                     response.status_code))
