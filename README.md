@@ -78,3 +78,4 @@ host that your master is running on.
 - AMO tests on stage
   - [2016-01-11](https://docs.google.com/spreadsheets/d/17y8MqnLgf5LG6wlQ6SVEljcQl3FuNaDt3Wr8zo4ERP8/edit#gid=331334299)
   - [2016-01-12](https://docs.google.com/spreadsheets/d/1l-8AXxhjEV1QT9Kl1raB6B76u3MU5ira927OY7mcy5Y/edit#gid=2013401068)
+  - [2016-01-13](https://docs.google.com/spreadsheets/d/1sSjGnjJMNxgOTBROyDrRd93MFgMxx0hNk9dMZXsp_is/edit#gid=0)
