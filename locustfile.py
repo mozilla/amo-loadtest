@@ -42,7 +42,8 @@ def uniqueify_xpi(path):
     try:
         xpi_dir = os.path.join(output_dir, 'xpi')
         output_path = os.path.join(output_dir, 'addon')
-        xpi_path = os.path.join(output_dir, 'addon.xpi')
+        xpi_name = os.path.basename(path)
+        xpi_path = os.path.join(output_dir, xpi_name)
         with ZipFile(path) as original:
             original.extractall(xpi_dir)
         with open(os.path.join(xpi_dir, 'install.rdf')) as f:
@@ -153,6 +154,8 @@ class UserBehavior(TaskSet):
                     '/en-US/developers/upload',
                     {'csrfmiddlewaretoken': csrfmiddlewaretoken},
                     files={'upload': addon_file},
+                    name='/en-US/developers/upload ({})'.format(
+                        os.path.basename(addon_file.name)),
                     allow_redirects=False,
                     catch_response=True) as response:
                 if response.status_code == 302:
