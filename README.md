@@ -24,9 +24,11 @@ source code repository.
 Run master and workers against your local Olympia docker container (by IP
 address, which may be different for you).
 
-    SITE_UNDER_TEST=http://192.168.59.103 docker-compose up -d
+    SITE_UNDER_TEST=http://$(docker-machine ip default) \
+        MASTER_HOST=$(docker-machine ip default) \
+        docker-compose up -d
 
-Open the Locust dashboard at http://192.168.59.103:8089/
+Open the Locust dashboard at `open http://$(docker-machine ip default):8089/`.
 
 ## Run load tests from AWS
 
