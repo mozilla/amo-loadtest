@@ -73,6 +73,19 @@ Run this command to start a worker container:
 You'll notice that the `$MASTER_HOST` var is set to the publicly accessible DNS
 host that your master is running on.
 
+### Updating EC2 Workers
+
+Due to how the containers are set up and how EC2 IPs change, you need to rebuild
+*and* update the containers after restarting an EC2 instance. It would look
+something like this on a worker instance:
+
+    sudo SITE_UNDER_TEST=https://addons.allizom.org \
+        MASTER_HOST=ec2-N-N-N-N.us-west-2.compute.amazonaws.com \
+        docker-compose -f docker-compose-worker.yml build
+    sudo SITE_UNDER_TEST=https://addons.allizom.org \
+        MASTER_HOST=ec2-N-N-N-N.us-west-2.compute.amazonaws.com \
+        docker-compose -f docker-compose-worker.yml up -d
+
 ## Results!
 
 - AMO tests on stage
