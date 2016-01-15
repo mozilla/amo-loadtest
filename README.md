@@ -92,3 +92,4 @@ something like this on a worker instance:
   - [2016-01-11](https://docs.google.com/spreadsheets/d/17y8MqnLgf5LG6wlQ6SVEljcQl3FuNaDt3Wr8zo4ERP8/edit#gid=331334299)
   - [2016-01-12](https://docs.google.com/spreadsheets/d/1l-8AXxhjEV1QT9Kl1raB6B76u3MU5ira927OY7mcy5Y/edit#gid=2013401068)
   - [2016-01-13](https://docs.google.com/spreadsheets/d/1sSjGnjJMNxgOTBROyDrRd93MFgMxx0hNk9dMZXsp_is/edit#gid=0)
+  - [2016-01-15](https://docs.google.com/spreadsheets/d/189JT9yxABnWjwI83xUcU5eYVjoV2lkamTFB2eu2uG-A/edit#gid=2090299171)
